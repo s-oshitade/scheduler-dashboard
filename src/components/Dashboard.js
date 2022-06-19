@@ -4,6 +4,7 @@ import axios from "axios";
 
 import Loading from "components/Loading";
 import Panel from "components/Panel";
+import { setInterview } from "helpers/reducers";
 
 import {
   getTotalInterviews,
@@ -69,6 +70,8 @@ class Dashboard extends Component {
         interviewers: interviewers.data,
       });
     });
+
+    this.socket = new WebSocket(process.env.REACT_APP_WEBSOCKET_URL);
   }
 
   componentDidUpdate(previousProps, previousState) {
@@ -76,6 +79,20 @@ class Dashboard extends Component {
       localStorage.setItem("focused", JSON.stringify(this.state.focused));
     }
 
+    this.socket.onmessage = event => {
+      const data = JSON.parse(event.data);
+    
+      if (typeof data === "object" && data.type === "SET_INTERVIEW") {
+        this.setState(previousState =>
+          setInterview(previousState, data.id, data.interview)
+        );
+      }
+    };
+
+  }
+
+  componentWillUnmount() {
+    this.socket.close();
   }
 
   render() {
@@ -86,7 +103,7 @@ class Dashboard extends Component {
     if (this.state.loading) {
       return <Loading />;
     }
-  console.log(this.state)
+
     const panels = (
       this.state.focused
         ? data.filter((panel) => this.state.focused === panel.id)
